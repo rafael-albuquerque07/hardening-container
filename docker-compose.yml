@@ -2,13 +2,49 @@ services:
 
   app:
     build: .
+    image: hardening-app:1.0.0
     ports:
-      - "3000:3000"
+      - "3000:3000"            # único serviço acessível externamente
+    environment:
+      DB_HOST: banco
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    read_only: true            # filesystem somente leitura
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL                    # a app não precisa de nenhuma capability
+    mem_limit: 256m
+    cpus: "0.5"
+    pids_limit: 100
+    networks:
+      - frontend
+      - backend
 
   banco:
-    image: mysql:latest
+    image: mysql:8.4           # versão fixa (LTS) em vez de :latest
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sistema
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - dados_banco:/var/lib/mysql
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: "1.0"
+    pids_limit: 200
+    networks:
+      - backend                # sem "ports": o banco não é publicado no host
+
+networks:
+  frontend:
+  backend:
+    internal: true             # rede interna, sem acesso externo
+
+volumes:
+  dados_banco:

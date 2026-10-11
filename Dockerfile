@@ -1,15 +1,19 @@
-FROM ubuntu:latest
+# Imagem base com versão fixa e variante alpine (poucos pacotes = menor superfície de ataque)
+FROM node:20.18.1-alpine3.20
+
+ENV NODE_ENV=production
 
 WORKDIR /app
 
-COPY . .
+# Copia somente o que a aplicação precisa (docs, compose, .env etc. ficam fora da imagem)
+COPY app/ ./app/
 
-RUN apt-get update
-RUN apt-get install -y nodejs npm
+# A aplicação não possui dependências externas hoje.
+# Quando houver, adicionar: RUN cd app && npm ci --omit=dev
 
-RUN npm install
-
-ENV DB_PASSWORD=123456
+# Usuário sem privilégios (já existe na imagem oficial do Node, uid 1000).
+# Os arquivos pertencem ao root e ficam somente leitura para o usuário da aplicação.
+USER node
 
 EXPOSE 3000
 
